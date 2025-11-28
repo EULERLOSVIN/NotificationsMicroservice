@@ -15,8 +15,13 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer<TripCreatedConsumer>();
 
-    x.UsingInMemory((context, cfg) =>
+    x.UsingRabbitMq((context, cfg) =>
     {
+        cfg.Host("localhost", "/", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
         cfg.ConfigureEndpoints(context);
     });
 });

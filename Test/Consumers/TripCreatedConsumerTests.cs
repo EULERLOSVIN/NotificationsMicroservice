@@ -6,34 +6,33 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NotificationsMicroservice.Consumers;
 using NotificationsMicroservice.Events;
-using Xunit;
 
 namespace NotificationsMicroservice.Test.Consumers;
 
-public class TripCreatedConsumerTests
+public class TripCreatedConsumerTests 
 {
     [Fact]
     public async Task Should_Consume_TripCreatedEvent()
     {
-        // Arrange
+        //Act : Configurar el entorno de prueba con MassTransit y un consumidor de prueba
         var provider = new ServiceCollection()
             .AddMassTransitTestHarness(x =>
             {
-                x.AddConsumer<TripCreatedConsumer>();
+                x.AddConsumer<TripCreatedConsumer>();  // Registrar el consumidor que queremos probar
             })
-            .AddSingleton(Mock.Of<ILogger<TripCreatedConsumer>>()) // Mock logger
+            .AddSingleton(Mock.Of<ILogger<TripCreatedConsumer>>()) // Crear un logger simulado (mock) para el consumidor
             .BuildServiceProvider(true);
 
-        var harness = provider.GetRequiredService<ITestHarness>();
+        var harness = provider.GetRequiredService<ITestHarness>(); // Obtener el test harness para simular el bus de mensajes
 
-        await harness.Start();
+        await harness.Start();// Iniciar el bus de prueba
 
         try
         {
             var tripId = 123;
             var passengerId = 456;
 
-            // Act
+            // Act : Publicar un evento de prueba
             await harness.Bus.Publish(new TripCreatedEvent
             {
                 TripId = tripId,
@@ -44,17 +43,17 @@ public class TripCreatedConsumerTests
                 CreatedAt = DateTime.UtcNow
             });
 
-            // Assert
-            
-            // Verify that the message was consumed
+            // Assert: Verificar que el mensaje fue consumido correctamente
+
+            // Comprobar que el evento fue recibido por algún consumidor
             (await harness.Consumed.Any<TripCreatedEvent>()).Should().BeTrue();
 
-            // Verify that the specific consumer consumed the message
+            // Comprobar que nuestro consumidor específico procesó el evento
             (await harness.GetConsumerHarness<TripCreatedConsumer>().Consumed.Any<TripCreatedEvent>()).Should().BeTrue();
         }
         finally
         {
-            await harness.Stop();
+            await harness.Stop();// Detener el bus de prueba al final
         }
     }
 }
