@@ -1,36 +1,25 @@
-using Microsoft.EntityFrameworkCore;
-using NotificationsMicroservice.Data;
-using NotificationsMicroservice.Services;
-using System.Text.Json.Serialization;
+using MassTransit;
+using NotificationsMicroservice.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// AGREGAR ESTO:
-builder.Services.AddDbContext<NotificationsDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Add services to the container.
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
-
-// =================================================================
-// 3. AQUÍ ESTÁ EL ARREGLO (Agrega estas dos líneas)
-// =================================================================
-
-// A. Registrar como Singleton para poder inyectarlo en el CommandHandler
-builder.Services.AddSingleton<NotificationListener>();
-
-// B. Registrar como HostedService para que corra en segundo plano (Background)
-// Usamos el provider para decirle "Usa la misma instancia Singleton de arriba"
-builder.Services.AddHostedService(provider => provider.GetRequiredService<NotificationListener>());
-
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        // ESTA LÍNEA ES MÁGICA: Corta los bucles infinitos
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Registrar MassTransit
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<TripCreatedConsumer>();
+
+    x.UsingInMemory((context, cfg) =>
+    {
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 var app = builder.Build();
 
